@@ -29,12 +29,15 @@ struct Game {
   SDL_Color text_color;
   SDL_Rect text_rect;
   SDL_Texture *text_image;
+  int text_xvel;
+  int text_yvel;
 };
 
 /* Prototypes */
 bool sdl__initialize(struct Game *game);
 void game_cleanup(struct Game *game, int exit_status);
 bool load_media(struct Game *game);
+void text_update(struct Game *game);
 
 /* Main Logic */
 int main(void) {
@@ -43,9 +46,11 @@ int main(void) {
       .renderer = NULL,
       .background = NULL,
       .text_font = NULL,
-      .text_color = {0, 255, 0, 255},
-      .text_rect = {0, 0, 0, 0},
+      .text_color = {0, 0, 255, 255},
+      .text_rect = {100, 0, 0, 0},
       .text_image = NULL,
+      .text_xvel = 3,
+      .text_yvel = 3,
   };
 
   if (sdl__initialize(&game)) {
@@ -76,6 +81,7 @@ int main(void) {
         break;
       }
     }
+    text_update(&game);
     SDL_RenderClear(game.renderer);
     SDL_RenderCopy(game.renderer, game.background, NULL, NULL);
     SDL_RenderCopy(game.renderer, game.text_image, NULL, &game.text_rect);
@@ -157,4 +163,21 @@ bool load_media(struct Game *game){
   }
 
   return false;
+}
+
+void text_update(struct Game *game){
+  game->text_rect.x += game->text_xvel;
+  game->text_rect.y += game->text_yvel;
+  if(game->text_rect.x + game->text_rect.w > SCREEN_WIDTH){
+    game->text_xvel = -3;
+  }
+  if(game->text_rect.x < 0){
+    game->text_xvel = 3;
+  }
+  if(game->text_rect.y + game->text_rect.h > SCREEN_HEIGHT){
+    game->text_yvel = -3;
+  }
+  if(game->text_rect.y < 0){
+    game->text_yvel = 3;
+  }
 }
