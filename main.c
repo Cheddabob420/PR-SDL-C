@@ -1,6 +1,7 @@
 /* Includes */
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_error.h>
+#include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_video.h>
@@ -20,7 +21,7 @@ struct Game {
 
 /* Prototypes */
 bool sdl__initialize(struct Game *game);
-void game_cleanup(struct Game *game);
+void game_cleanup(struct Game *game, int exit_status);
 
 /* Main Logic */
 int main(void) {
@@ -30,25 +31,44 @@ int main(void) {
   };
 
   if (sdl__initialize(&game)) {
-    game_cleanup(&game);
+    game_cleanup(&game, EXIT_FAILURE);
     exit(1);
   }
+  while (true) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+      case SDL_QUIT:
+        game_cleanup(&game, EXIT_SUCCESS);
+        break;
+      case SDL_KEYDOWN:
+        switch (event.key.keysym.scancode) {
+        case SDL_SCANCODE_ESCAPE:
+          game_cleanup(&game, EXIT_SUCCESS);
+          break;
+        default:
+          break;
+        }
+      default:
+        break;
+      }
+    }
+    SDL_RenderClear(game.renderer);
+    SDL_RenderPresent(game.renderer);
+    SDL_Delay(16);
+  }
 
-  SDL_RenderClear(game.renderer);
-  SDL_RenderPresent(game.renderer);
-
-  SDL_Delay(5000);
-
-  game_cleanup(&game);
+  game_cleanup(&game, EXIT_SUCCESS);
 
   return EXIT_SUCCESS;
 }
 
 /* Functions */
-void game_cleanup(struct Game *game) {
+void game_cleanup(struct Game *game, int exit_status) {
   SDL_DestroyRenderer(game->renderer);
   SDL_DestroyWindow(game->window);
   SDL_Quit();
+  exit(exit_status);
 }
 
 bool sdl__initialize(struct Game *game) {
