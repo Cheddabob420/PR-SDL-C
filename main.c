@@ -4,9 +4,11 @@
 #include <SDL2/SDL_error.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_video.h>
 #include <SDL2/SDL_image.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,11 +19,16 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define IMAGE_FLAGS IMG_INIT_PNG
+#define TEXT_SIZE 160
 
 struct Game {
   SDL_Window *window;
   SDL_Renderer *renderer;
   SDL_Texture *background;
+  TTF_Font *text_font;
+  SDL_Color text_color;
+  SDL_Rect text_rect;
+  SDL_Texture *text_image;
 };
 
 /* Prototypes */
@@ -35,6 +42,10 @@ int main(void) {
       .window = NULL,
       .renderer = NULL,
       .background = NULL,
+      .text_font = NULL,
+      .text_color = {0, 255, 0, 255},
+      .text_rect = {0, 0, 0, 0},
+      .text_image = NULL,
   };
 
   if (sdl__initialize(&game)) {
@@ -67,6 +78,7 @@ int main(void) {
     }
     SDL_RenderClear(game.renderer);
     SDL_RenderCopy(game.renderer, game.background, NULL, NULL);
+    SDL_RenderCopy(game.renderer, game.text_image, NULL, &game.text_rect);
     SDL_RenderPresent(game.renderer);
     SDL_Delay(16);
   }
@@ -78,9 +90,12 @@ int main(void) {
 
 /* Functions */
 void game_cleanup(struct Game *game, int exit_status) {
+  SDL_DestroyTexture(game->text_image);
+  TTF_CloseFont(game->text_font);
   SDL_DestroyTexture(game->background);
   SDL_DestroyRenderer(game->renderer);
   SDL_DestroyWindow(game->window);
+  TTF_Quit();
   IMG_Quit();
   SDL_Quit();
   exit(exit_status);
@@ -93,7 +108,11 @@ bool sdl__initialize(struct Game *game) {
   }
   int img_init = IMG_Init(IMAGE_FLAGS);
   if((img_init & IMAGE_FLAGS) != IMAGE_FLAGS){
-    fprintf(stderr, "Error Initializing Image: %s\n", IMG_GetError());
+    fprintf(stderr, "Error Initializing SDL_Image: %s\n", IMG_GetError());
+    return true;
+  }
+  if(TTF_Init()){
+    fprintf(stderr, "Error Initializing SDL_Text: %s\n", TTF_GetError());
     return true;
   }
   game->window =
@@ -118,5 +137,24 @@ bool load_media(struct Game *game){
     fprintf(stderr, "Error Initializing Texture: %s\n", IMG_GetError());
     return true;
   }
+  game->text_font = TTF_OpenFont("fonts/freesansbold.ttf", TEXT_SIZE);
+  if(!game->text_font){
+    fprintf(stderr, "Error Initializing SDL_Font: %s\n", TTF_GetError());
+    return true;
+  }
+  SDL_Surface *surface = TTF_RenderText_Blended(game->text_font, "SDL", game->text_color);
+  if(!surface){
+    fprintf(stderr, "Error Initializing Surface: %s\n", TTF_GetError());
+    return true;
+  }
+  game->text_rect.w = surface->w;
+  game->text_rect.h = surface->h;
+  game->text_image = SDL_CreateTextureFromSurface(game->renderer, surface);
+  SDL_FreeSurface(surface);
+  if(!game->text_image){
+    fprintf(stderr, "Error Initializing Texture: %s\n", SDL_GetError());
+    return true;
+  }
+
   return false;
 }
