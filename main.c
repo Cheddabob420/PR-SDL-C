@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 /* Globals */
 #define WINDOW_TITLE "My Window"
@@ -53,6 +54,9 @@ int main(void) {
         switch (event.key.keysym.scancode) {
         case SDL_SCANCODE_ESCAPE:
           game_cleanup(&game, EXIT_SUCCESS);
+          break;
+        case SDL_SCANCODE_SPACE:
+          SDL_SetRenderDrawColor(game.renderer, rand() % 256, rand() % 256, rand() % 256, 255);
           break;
         default:
           break;
@@ -104,6 +108,7 @@ bool sdl__initialize(struct Game *game) {
     fprintf(stderr, "Error Creating Renderer: %s\n", SDL_GetError());
     return true;
   }
+  srand((unsigned)time(NULL));
   return false;
 }
 
